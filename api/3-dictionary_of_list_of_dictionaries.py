@@ -1,46 +1,36 @@
 #!/usr/bin/python3
-"""
-Python script that gathers all employees' TODO lists
-and exports them to todo_all_employees.json.
-"""
+"""Import module"""
 
+import csv
 import json
 import requests
 
 
-def fetch_all_users():
-    """Fetch all users from the API."""
-    url = "https://jsonplaceholder.typicode.com/users"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
+if __name__ == '__main__':
+    userId = 1
+    user_tasks = {}
+    url_todo = 'https://jsonplaceholder.typicode.com/todos/'
+    url_user = 'https://jsonplaceholder.typicode.com/users/'
+    users = requests.get(url_user).json()
 
+    for userId in range(1, len(users) + 1):
+        todo = requests.get(url_todo, params={'userId': userId})
+        user = requests.get(url_user, params={'id': userId})
 
-def fetch_user_todos(user_id):
-    """Fetch TODOs for a specific user by ID."""
-    url = f"https://jsonplaceholder.typicode.com/todos?userId={user_id}"
-    response = requests.get(url)
-    response.raise_for_status()
-    return response.json()
+        todo_dict_list = todo.json()
+        user_dict_list = user.json()
+        task_list = []
+        employee = user_dict_list[0].get('username')
 
+        for task in todo_dict_list:
+            status = task.get('completed')
+            title = task.get('title')
+            task_dict = {}
+            task_dict['task'] = title
+            task_dict['completed'] = status
+            task_dict['username'] = employee
+            task_list.append(task_dict)
+        user_tasks[userId] = task_list
 
-def main():
-    """Gather all TODOs and export to JSON."""
-    all_users_data = {}
-    users = fetch_all_users()
-
-    for user in users:
-        user_id = str(user.get("id"))
-        username = user.get("username")
-        todos = fetch_user_todos(user_id)
-        all_users_data[user_id] = [
-            {"username": username, "task": task.get("title"), "completed": task.get("completed")}
-            for task in todos
-        ]
-
-    with open("todo_all_employees.json", "w", encoding="utf-8") as json_file:
-        json.dump(all_users_data, json_file)
-
-
-if __name__ == "__main__":
-    main()
+    with open("todo_all_employees.json", "w+") as jsonfile:
+        json.dump(user_tasks, jsonfile)
